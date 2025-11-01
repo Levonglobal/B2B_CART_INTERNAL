@@ -1,5 +1,5 @@
 import Invoice from "../../models/InvoiceModel/InvoiceModel.js";
-
+import Agent from "../../models/AgentModel/AgentModel.js";
 
 /**
  * ✅ Create Invoice (with file upload)
@@ -53,6 +53,13 @@ export const createInvoice = async (req, res) => {
       terms: typeof terms === "string" ? JSON.parse(terms) : terms, // ✅ FIX
       attachments,
     });
+
+    const agentData = await Agent.findById(assignedAgent);
+        if (agentData) {
+          agentData.InvoiceCount = (agentData.InvoiceCount || 0) + 1;
+          agentData. IndividualsId = [...(agentData. IndividualsId || []), savedCertificate._id];
+          await agentData.save();
+        }
 
     await newInvoice.save();
 
@@ -152,6 +159,17 @@ export const updateInvoice = async (req, res) => {
 export const deleteInvoice = async (req, res) => {
   try {
     await Invoice.findByIdAndDelete(req.params.id);
+        const { agentId } = await Invoice.findById(req.params.id);
+    if (agentId) {
+          const agent = await Agent.findById(agentId);
+          if (agent) {
+            agent.InvoiceCount = Math.max(0, agent.companyCount - 1); // prevent negative count
+            agent.InvoiceIds = agent.companyIds.filter(
+              (companyId) => companyId.toString() !== id
+            );
+            await agent.save();
+          }
+        }
     return res.status(200).json({ success: true, message: "Invoice deleted successfully" });
   } catch (error) {
     return res.status(500).json({ success: false, error });
