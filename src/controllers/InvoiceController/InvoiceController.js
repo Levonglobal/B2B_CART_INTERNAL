@@ -57,7 +57,7 @@ export const createInvoice = async (req, res) => {
     const agentData = await Agent.findById(agentId);
         if (agentData) {
           agentData.InvoiceCount = (agentData.InvoiceCount || 0) + 1;
-          agentData. IndividualsId = [...(agentData. IndividualsId || []), savedCertificate._id];
+          agentData. IndividualsId = [...(agentData. IndividualsId || []), newInvoice._id];
           await agentData.save();
         }
 
@@ -158,13 +158,13 @@ export const updateInvoice = async (req, res) => {
  */
 export const deleteInvoice = async (req, res) => {
   try {
-    await Invoice.findByIdAndDelete(req.params.id);
+   const data =  await Invoice.findByIdAndDelete(req.params.id);
         const { agentId } = await Invoice.findById(req.params.id);
     if (agentId) {
           const agent = await Agent.findById(agentId);
           if (agent) {
-            agent.InvoiceCount = Math.max(0, agent.companyCount - 1); // prevent negative count
-            agent.InvoiceIds = agent.companyIds.filter(
+            agent.InvoiceCount = Math.max(0, agent.InvoiceCount - 1); // prevent negative count
+            agent.InvoiceIds = agent.InvoiceIds.filter(
               (companyId) => companyId.toString() !== id
             );
             await agent.save();
