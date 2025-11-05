@@ -127,7 +127,7 @@ export const createInvoice = async (req, res) => {
  */
 export const getAllInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find().populate("agentId");
+    const invoices = await Invoice.find().populate("agentId").populate("componyDetails");
     return res.status(200).json({ success: true, invoices });
   } catch (error) {
     return res.status(500).json({ success: false, error });
@@ -140,7 +140,7 @@ export const getAllInvoices = async (req, res) => {
  */
 export const getInvoiceById = async (req, res) => {
   try {
-    const invoice = await Invoice.findById(req.params.id).populate("agentId");
+    const invoice = await Invoice.findById(req.params.id).populate("agentId").populate("componyDetails");
     if (!invoice) return res.status(404).json({ message: "Invoice not found" });
 
     return res.status(200).json({ success: true, invoice });
