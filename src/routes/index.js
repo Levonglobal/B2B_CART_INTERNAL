@@ -17,6 +17,7 @@ import StandardRouter from "./standardRoutes/standardRoutes.js";
 // import userRoutes from "./userRoutes.js"; // if you have user module
 import CompanyDetailsRouter from "./companyDetailsRoutes/companyDetailsRouter.js";
 import pendingPaymentsRoutes from "./PendingRoutes/PendingRoutes.js";
+import ProformaInvoice from "./ProformainvoiceRoutes/ProformainvoiceRouter.js";
 
 const router = express.Router();
 
@@ -37,6 +38,7 @@ router.use("/invoices", InvoiceRouter);
 router.use("/standards", StandardRouter);
 router.use("/companyDetails", CompanyDetailsRouter);
 router.use("/Pendingpayments", pendingPaymentsRoutes)
+router.use("/proformaInvoices", ProformaInvoice);
 // router.use("/users", userRoutes); // Add user module later
 
 export default router;
