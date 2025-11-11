@@ -1,6 +1,7 @@
 import Invoice from "../../models/InvoiceModel/InvoiceModel.js";
 import Agent from "../../models/AgentModel/AgentModel.js";
 import { permissionMiddleware } from "../../middleware/PermissionMidilewere.js";
+import ComponyModel from "../../models/componyModel/ComponyModel.js";
 /**
  * ✅ Create Invoice (with file upload)
  */
@@ -12,6 +13,7 @@ export const createInvoice = async (req, res) => {
       currency,
       agentId,
       companyName,
+      companyId,   // <-- coming from request
       email,
       alternateEmails,
       phone,
@@ -47,18 +49,16 @@ export const createInvoice = async (req, res) => {
           gstPercentage: term.gstPercentage,
           gstAmount: term.gstAmount,
           TDSAmmount: term.TDSAmmount,
-          termTotal:term.termTotal,
+          termTotal: term.termTotal,
           status: term.status || "Pending",
         };
       } else {
-    
-
         return {
           termName: term.termName,
           baseAmount: term.baseAmount,
           termTotal: term.termTotal,
           exchangeRate: term.exchangeRate,
-          totalInINR:term.totalInINR,
+          totalInINR: term.totalInINR,
           status: term.status || "Pending",
         };
       }
@@ -71,10 +71,12 @@ export const createInvoice = async (req, res) => {
         fileType: file.mimetype,
       })) || [];
 
+    // ✅ Invoice creation
     const newInvoice = new Invoice({
       invoiceNo,
       currency,
       agentId,
+      companyId:companyId, // <-- storing here
       companyName,
       email,
       alternateEmails,
@@ -101,20 +103,42 @@ export const createInvoice = async (req, res) => {
       attachments,
     });
 
-    // ✅ Update agent invoice count
+    const invoiceDat = await newInvoice.save();
+
+    // ✅ Agent invoice count update
     const agentData = await Agent.findById(agentId);
     if (agentData) {
       agentData.InvoiceCount = (agentData.InvoiceCount || 0) + 1;
-      agentData.InvoiceIds = [...(agentData.InvoiceIds || []), newInvoice._id];
+      agentData.InvoiceIds.push(invoiceDat._id);
       await agentData.save();
     }
 
-    await newInvoice.save();
+    // ✅ Company logic
+    if (companyId) {
+      // Existing company
+      const companyData = await ComponyModel.findById(companyId);
+      if (companyData) {
+        companyData.invoiceCount += 1;
+        companyData.invoiceIds.push(invoiceDat._id);
+        await companyData.save();
+      }
+    } else {
+      // Create new company
+      const company = await ComponyModel.create({
+        companyName,
+        status: "Active",
+        invoiceCount: 1,
+        invoiceIds: [invoiceDat._id], // ✅ array fix
+      });
+
+      invoiceDat.companyId = company._id; // ✅ typo fix
+      await invoiceDat.save();
+    }
 
     return res.status(201).json({
       success: true,
       message: "Invoice created successfully",
-      invoice: newInvoice,
+      invoice: invoiceDat,  // ✅ return updated invoice
     });
   } catch (error) {
     console.error("Create Invoice Error:", error);
@@ -125,6 +149,7 @@ export const createInvoice = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -244,6 +269,21 @@ export const deleteInvoice = async (req, res) => {
     }
 
     const agentId = invoice.agentId;
+    const companyId = invoice.companyId;
+
+    // ✅ Delete invoice
+    await Invoice.findByIdAndDelete(id);
+    
+    if(companyId){
+      const company = await ComponyModel.findById(companyId);
+      if(company){
+        company.invoiceCount = Math.max(0,company.invoiceCount - 1);
+        company.invoiceIds = company.invoiceIds.filter(
+          (invId) => invId.toString() !== id
+        );
+        await company.save();
+      }
+    }
 
     // ✅ Delete invoice
     await Invoice.findByIdAndDelete(id);

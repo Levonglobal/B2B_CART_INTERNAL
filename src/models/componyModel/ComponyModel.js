@@ -8,56 +8,22 @@ const companySchema = new mongoose.Schema(
       trim: true,
       unique: true
     },
-    address: {
-      type: String,
-      trim: true
-    },
-    logo: {
-      type: String, // store URL or filename of the logo
-      trim: true
-    },
     status: {
       type: String,
       enum: ["Active", "Inactive", "Pending"],
       default: "Active"
     },
-    certificationCount: {
+    invoiceCount: {
       type: Number,
       default: 0
     },
-    certificationIds: [
+    invoiceIds: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Certification"
+        ref: "Invoice"
       }
     ],
-    clientName: {
-      type: String,
-      trim: true
-    },
-    companyEmail: {
-      type: String,
-      trim: true,
-      required: false
-    },
-    companyPhoneCode: { type: String, required: false, trim: true }, // "+91"
-    companyPhoneNumber: { type: String, required: false, trim: true }, // "9876543210"
 
-    country: {
-      type: String,
-      required: true
-    },
-    city: {
-      type: String,
-      required: true
-    },
-
-    // ✅ New optional field
-    alternateEmails: {
-      type: [String],
-      required: false,
-      default: []
-    }
   },
   { timestamps: true }
 );

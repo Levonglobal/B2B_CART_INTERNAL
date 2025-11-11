@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 const termSchema = new mongoose.Schema({
   termName: { type: String, required: true },
   baseAmount: { type: Number, required: true },
-
+ 
   /** ✅ GST only for INR */
  
  gstPercentage: {
@@ -69,6 +69,7 @@ const invoiceSchema = new mongoose.Schema(
     agentId: { type: mongoose.Schema.Types.ObjectId, ref: "Agent" },
 
     companyName: { type: String, required: true },
+    companyId:{type:mongoose.Schema.Types.ObjectId,ref:"Company"},
     email: { type: String, required: true },
     alternateEmails: [{ type: String }],
     phone: { type: String },

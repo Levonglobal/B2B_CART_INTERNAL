@@ -1,11 +1,12 @@
 import Company from "../../models/componyModel/ComponyModel.js";
-import Certification from "../../models/CertificationModel/CertificationModel.js";
+import Invoice from "../../models/InvoiceModel/InvoiceModel.js";
 import Agent from "../../models/AgentModel/AgentModel.js"
 
 // Get all companies
 export const getAllCompanies = async (req, res) => {
   try {
-    const companies = await Company.find().populate("certificationIds");
+    const companies = await Company.find()
+      .populate("invoiceIds")   // field in Company schema
     res.status(200).json(companies);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -16,7 +17,8 @@ export const getAllCompanies = async (req, res) => {
 export const getCompanyById = async (req, res) => {
   try {
     const { id } = req.params;
-    const company = await Company.findById(id).populate("certificationIds");
+    const company = await Company.findById(id)
+      .populate("invoiceIds")   // field in Company schema
     if (!company) return res.status(404).json({ message: "Company not found" });
     res.status(200).json(company);
   } catch (error) {
@@ -52,71 +54,71 @@ export const deleteCompany = async (req, res) => {
 
 
 
-export const filterCompanies = async (req, res) => {
-  try {
-    let {
-      search = "",
-      status = "All",
-      fromDate,
-      toDate,
-      page = 1,
-      limit = 10,
-    } = req.query;
+// export const filterCompanies = async (req, res) => {
+//   try {
+//     let {
+//       search = "",
+//       status = "All",
+//       fromDate,
+//       toDate,
+//       page = 1,
+//       limit = 10,
+//     } = req.query;
 
-    page = parseInt(page) || 1;
-    limit = parseInt(limit) || 10;
-    const skip = (page - 1) * limit;
+//     page = parseInt(page) || 1;
+//     limit = parseInt(limit) || 10;
+//     const skip = (page - 1) * limit;
 
-    const query = {};
+//     const query = {};
 
-    // ✅ Search by companyName or clientName
-    if (search) {
-      const regex = new RegExp(search, "i");
-      query.$or = [{ companyName: regex }, { clientName: regex }];
-    }
+//     // ✅ Search by companyName or clientName
+//     if (search) {
+//       const regex = new RegExp(search, "i");
+//       query.$or = [{ companyName: regex }, { clientName: regex }];
+//     }
 
-    // ✅ Filter by status (default = All)
-    if (status && status !== "All") {
-      query.status = status;
-    }
+//     // ✅ Filter by status (default = All)
+//     if (status && status !== "All") {
+//       query.status = status;
+//     }
 
-    // ✅ Filter by creation date (createdAt)
-    if (fromDate && toDate) {
-      query.createdAt = {
-        $gte: new Date(fromDate),
-        $lte: new Date(toDate),
-      };
-    } else if (fromDate) {
-      query.createdAt = { $gte: new Date(fromDate) };
-    } else if (toDate) {
-      query.createdAt = { $lte: new Date(toDate) };
-    }
+//     // ✅ Filter by creation date (createdAt)
+//     if (fromDate && toDate) {
+//       query.createdAt = {
+//         $gte: new Date(fromDate),
+//         $lte: new Date(toDate),
+//       };
+//     } else if (fromDate) {
+//       query.createdAt = { $gte: new Date(fromDate) };
+//     } else if (toDate) {
+//       query.createdAt = { $lte: new Date(toDate) };
+//     }
 
-    // ✅ Fetch filtered companies with pagination
-    const companies = await Company.find(query)
-      .populate("certificationIds") // optional: to include certifications
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+//     // ✅ Fetch filtered companies with pagination
+//     const companies = await Company.find(query)
+//       .populate("certificationIds") // optional: to include certifications
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limit);
 
-    // ✅ Count total for pagination
-    const total = await Company.countDocuments(query);
+//     // ✅ Count total for pagination
+//     const total = await Company.countDocuments(query);
 
-    res.status(200).json({
-      success: true,
-      message: "Filtered companies fetched successfully",
-      totalItems: total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      companies,
-    });
-  } catch (error) {
-    console.error("Error filtering companies:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while filtering companies",
-      error: error.message,
-    });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       message: "Filtered companies fetched successfully",
+//       totalItems: total,
+//       totalPages: Math.ceil(total / limit),
+//       currentPage: page,
+//       companies,
+//     });
+//   } catch (error) {
+//     console.error("Error filtering companies:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error while filtering companies",
+//       error: error.message,
+//     });
+//   }
+// };
 

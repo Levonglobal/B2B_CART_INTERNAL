@@ -3,7 +3,7 @@ import adminRoutes from "./adminRoutes/adminRoutes.js";
 import agentRoutes from "./AgentRoutes/AgentRoutes.js";
 // import CertificationRoutes from "./CertificationRoutes/CertificationRoutes.js"
 // import OverViewRoutes from "./OverViewRoutes/OverViewRouter.js"
-// import ComponyRoutes from "./ComponyRoutes/ComponyRoutes.js"
+import ComponyRoutes from "./ComponyRoutes/ComponyRoutes.js"
 // import firstSurveillance from "./FirstSurveillanceRoutes/FirstSurveillanceRoutes.js"
 // import SecondSurveillance from "./SecondsurvellianceauditRoutes/SecondsurvellianceauditRouter.js"
 // import ExpiredSurveillance from "./ExpiredCertificationRoutes/ExpiredCertificationRouter.js"
@@ -25,7 +25,7 @@ router.use("/admin", adminRoutes);
 router.use("/agents", agentRoutes);
 // router.use("/Certification",CertificationRoutes)
 // router.use("/overview",OverViewRoutes)
-// router.use("/compony",ComponyRoutes)
+router.use("/compony",ComponyRoutes)
 // router.use("/firstSurveillance",firstSurveillance)
 // router.use("/SecondSurveillance",SecondSurveillance)
 // router.use("/ExpiredSurveillance",ExpiredSurveillance)
