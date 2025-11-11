@@ -186,24 +186,27 @@ export const updateProformaInvoice = async (req, res) => {
     }
 
     // ✅ Handle Agent Change
-    if (req.body.agentId && req.body.agentId !== existingInvoice.agentId.toString()) {
-      const oldAgent = await Agent.findById(existingInvoice.agentId);
-      const newAgent = await Agent.findById(req.body.agentId);
+      // ✅ Handle Agent Change (null-safe)
+if (req.body.agentId && existingInvoice.agentId?.toString() !== req.body.agentId) {
 
-      if (oldAgent) {
-        oldAgent.InvoiceCount = Math.max(0, oldAgent.InvoiceCount - 1);
-        oldAgent.InvoiceIds = oldAgent.InvoiceIds.filter(
-          (invId) => invId.toString() !== invoiceId
-        );
-        await oldAgent.save();
-      }
+  const oldAgent = existingInvoice.agentId ? await Agent.findById(existingInvoice.agentId) : null;
+  const newAgent = await Agent.findById(req.body.agentId);
 
-      if (newAgent) {
-        newAgent.InvoiceCount = (newAgent.InvoiceCount || 0) + 1;
-        newAgent.InvoiceIds.push(invoiceId);
-        await newAgent.save();
-      }
-    }
+  if (oldAgent) {
+    oldAgent.InvoiceCount = Math.max(0, oldAgent.InvoiceCount - 1);
+    oldAgent.InvoiceIds = oldAgent.InvoiceIds.filter(
+      (invId) => invId.toString() !== invoiceId
+    );
+    await oldAgent.save();
+  }
+
+  if (newAgent) {
+    newAgent.InvoiceCount = (newAgent.InvoiceCount || 0) + 1;
+    newAgent.InvoiceIds.push(invoiceId);
+    await newAgent.save();
+  }
+}
+
 
     // ✅ Update invoice
     const updatedInvoice = await Invoice.findByIdAndUpdate(
