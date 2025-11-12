@@ -21,8 +21,19 @@ const companySchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Invoice"
-      }
+      },
+      
+
     ],
+     ProformainvoiceCount: {
+      type: Number,
+      default: 0
+    },
+     ProformainvoiceIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Invoice"
+      }]
 
   },
   { timestamps: true }

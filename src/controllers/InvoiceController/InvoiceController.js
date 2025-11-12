@@ -213,24 +213,34 @@ export const updateInvoice = async (req, res) => {
     }
 
     // ✅ Handle Agent Change
-    if (req.body.agentId && req.body.agentId !== existingInvoice.agentId.toString()) {
-      const oldAgent = await Agent.findById(existingInvoice.agentId);
-      const newAgent = await Agent.findById(req.body.agentId);
+    // ✅ Update agent mapping on invoice update
+if (req.body.agentId && existingInvoice.agentId?.toString() !== req.body.agentId) {
 
-      if (oldAgent) {
-        oldAgent.InvoiceCount = Math.max(0, oldAgent.InvoiceCount - 1);
-        oldAgent.InvoiceIds = oldAgent.InvoiceIds.filter(
-          (invId) => invId.toString() !== invoiceId
-        );
-        await oldAgent.save();
-      }
+  // Fetch old agent only if exists
+  const oldAgent = existingInvoice.agentId
+    ? await Agent.findById(existingInvoice.agentId)
+    : null;
 
-      if (newAgent) {
-        newAgent.InvoiceCount = (newAgent.InvoiceCount || 0) + 1;
-        newAgent.InvoiceIds.push(invoiceId);
-        await newAgent.save();
-      }
-    }
+  // Fetch new agent
+  const newAgent = await Agent.findById(req.body.agentId);
+
+  // ✅ Remove invoice from old agent
+  if (oldAgent) {
+    oldAgent.InvoiceCount = Math.max(0, (oldAgent.InvoiceCount || 0) - 1);
+    oldAgent.InvoiceIds = oldAgent.InvoiceIds.filter(
+      invId => invId.toString() !== invoiceId
+    );
+    await oldAgent.save();
+  }
+
+  // ✅ Add invoice to new agent
+  if (newAgent) {
+    newAgent.InvoiceCount = (newAgent.InvoiceCount || 0) + 1;
+    newAgent.InvoiceIds.push(invoiceId);
+    await newAgent.save();
+  }
+}
+
 
     // ✅ Update invoice
     const updatedInvoice = await Invoice.findByIdAndUpdate(

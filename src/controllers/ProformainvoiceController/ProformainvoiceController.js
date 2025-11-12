@@ -1,6 +1,7 @@
 import Invoice from "../../models/ProformainvoiceModel/ProformainvoiceModel.js";
 import Agent from "../../models/AgentModel/AgentModel.js";
 import { permissionMiddleware } from "../../middleware/PermissionMidilewere.js";
+import ComponyModel from "../../models/componyModel/ComponyModel.js";
 /**
  * ✅ Create Invoice (with file upload)
  */
@@ -12,6 +13,7 @@ export const createProformaInvoice = async (req, res) => {
       currency,
       agentId,
       companyName,
+      companyId,
       email,
       alternateEmails,
       phone,
@@ -75,6 +77,7 @@ export const createProformaInvoice = async (req, res) => {
       currency,
       agentId,
       companyName,
+      companyId:companyId,
       email,
       alternateEmails,
       phone,
@@ -107,7 +110,30 @@ export const createProformaInvoice = async (req, res) => {
       await agentData.save();
     }
 
-    await newInvoice.save();
+    const newProformaInvoice =   await newInvoice.save();
+
+      if (companyId) {
+          // Existing company
+          const companyData = await ComponyModel.findById(companyId);
+          if (companyData) {
+            companyData.ProformainvoiceCount += 1;
+            companyData.ProformainvoiceIds.push(newProformaInvoice._id);
+            await companyData.save();
+          }
+        } else {
+          // Create new company
+          const company = await ComponyModel.create({
+            companyName,
+            status: "Active",
+            ProformainvoiceCount: 1,
+            ProformainvoiceIds: [newProformaInvoice._id], // ✅ array fix
+          });
+    
+          newProformaInvoice.companyId = company._id; // ✅ typo fix
+          await newProformaInvoice.save();
+        }
+
+
 
     return res.status(201).json({
       success: true,
