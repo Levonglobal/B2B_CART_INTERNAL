@@ -32,7 +32,7 @@ const companySchema = new mongoose.Schema(
      ProformainvoiceIds: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Invoice"
+        ref: "ProformaInvoice"
       }]
 
   },

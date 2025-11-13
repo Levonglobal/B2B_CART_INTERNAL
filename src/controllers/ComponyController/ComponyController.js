@@ -7,6 +7,7 @@ export const getAllCompanies = async (req, res) => {
   try {
     const companies = await Company.find()
       .populate("invoiceIds")   // field in Company schema
+      .populate("ProformainvoiceIds")
     res.status(200).json(companies);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -28,6 +29,7 @@ export const getCompanyById = async (req, res) => {
     const { id } = req.params;
     const company = await Company.findById(id)
       .populate("invoiceIds")   // field in Company schema
+      .populate("ProformainvoiceIds")
     if (!company) return res.status(404).json({ message: "Company not found" });
     res.status(200).json(company);
   } catch (error) {
