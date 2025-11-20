@@ -135,6 +135,8 @@ export const createInvoice = async (req, res) => {
       await invoiceDat.save();
     }
 
+
+
     return res.status(201).json({
       success: true,
       message: "Invoice created successfully",
@@ -405,4 +407,36 @@ export const getInvoicesFilter = async (req, res) => {
     });
   }
 };
+
+export const getInvoiveByStandrdAndComponyAsATrue = async (req, res) => {
+  try {
+    const { standard, companyId } = req.params;
+
+    console.log("Standard:", standard, "Company ID:", companyId);
+
+    // ✅ First update ALL invoices matching standard + companyId
+    await Invoice.updateMany(
+      { standard: standard, companyId: companyId },
+      { $set: {IsCompleted: true } }
+    );
+
+    // ✅ Then fetch updated invoices
+    const invoices = await Invoice.find({
+      standard: standard,
+      companyId: companyId,
+    })
+      .populate("agentId")
+      .populate("componyDetails")
+      .populate("standard");
+
+    return res.status(200).json({
+      success: true,
+      message: "All invoices updated with IsCompleted: true",
+      invoices,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error });
+  }
+};
+
 

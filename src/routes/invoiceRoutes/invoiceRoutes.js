@@ -6,7 +6,8 @@ import {
   getInvoiceById,
   updateInvoice,
   deleteInvoice,
-  getInvoicesFilter
+  getInvoicesFilter,
+  getInvoiveByStandrdAndComponyAsATrue
 } from "../../controllers/InvoiceController/InvoiceController.js";
 
 import upload from "../../config/cloudinaryConfig.js";
@@ -23,5 +24,6 @@ router.get("/:id", getInvoiceById);
 router.put("/:id", upload.fields([{ name: "attachments", maxCount: 10 }]), updateInvoice);
 router.delete("/:id", deleteInvoice);
 router.get("/filter/search",  getInvoicesFilter);
+router.get("/Mark-True/standard/:standard/companyId/:companyId",getInvoiveByStandrdAndComponyAsATrue)
 
 export default router;

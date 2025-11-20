@@ -115,6 +115,7 @@ const invoiceSchema = new mongoose.Schema(
      },
     GrandTotalBaseAmmount: { type: Number, required: true },
     PendingPaymentInINR: { type: Number, required: true },
+    IsCompleted: { type: Boolean, default: false },
 
     attachments: [
       {
