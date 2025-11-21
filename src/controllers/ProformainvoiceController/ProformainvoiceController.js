@@ -2,6 +2,8 @@ import Invoice from "../../models/ProformainvoiceModel/ProformainvoiceModel.js";
 import Agent from "../../models/AgentModel/AgentModel.js";
 import { permissionMiddleware } from "../../middleware/PermissionMidilewere.js";
 import ComponyModel from "../../models/componyModel/ComponyModel.js";
+import standardModel from "../../models/StandardModel/StandardModel.js";  
+import Standard from "../../models/StandardModel/StandardModel.js";
 /**
  * ✅ Create Invoice (with file upload)
  */
@@ -324,6 +326,9 @@ export const editStatusProformaInvoice = async (req, res) => {
 };
 
 
+
+
+
 export const getProformaInvoicesFilter = async (req, res) => {
   try {
     const {
@@ -343,39 +348,81 @@ export const getProformaInvoicesFilter = async (req, res) => {
 
     const filter = {};
 
-    /* 🔍 Search by company or invoice number */
+    /* ------------------ 🔍 GLOBAL SEARCH ------------------ */
     if (search) {
       filter.$or = [
         { companyName: { $regex: search, $options: "i" } },
         { invoiceNo: { $regex: search, $options: "i" } },
       ];
+
+      /** 🔍 Search by Agent Name */
+      const matchedAgents = await Agent.find({
+        agentName: { $regex: search, $options: "i" }
+      }).select("_id");
+
+      if (matchedAgents.length > 0) {
+        filter.$or.push({ agentId: { $in: matchedAgents.map(a => a._id) } });
+      }
+
+      /** 🔍 Search by Standard Name */
+      const matchedStandards = await Standard.find({
+        standardName: { $regex: search, $options: "i" }
+      }).select("standardName");
+
+      if (matchedStandards.length > 0) {
+        filter.$or.push({ standard: { $in: matchedStandards.map(s => s.standardName) } });
+      }
     }
 
+    /* ------------------ SIMPLE FILTERS ------------------ */
     if (companyName) filter.companyName = companyName;
-    if (agentId) filter.agentId = agentId;
+
+    /** 🔍 If agentId is ID or name */
+    if (agentId) {
+      const agentDoc = await Agent.findOne({
+        $or: [
+          { _id: agentId },
+          { agentName: { $regex: agentId, $options: "i" } }
+        ]
+      });
+
+      if (agentDoc) filter.agentId = agentDoc._id;
+    }
+
+    /** 🔍 If standard field contains name or ID */
+    if (standard) {
+      const stdDoc = await Standard.findOne({
+        $or: [
+          { standardName: { $regex: standard, $options: "i" } },
+          { _id: standard }
+        ]
+      });
+
+      if (stdDoc) filter.standard = stdDoc.standardName;
+    }
+
     if (status) filter.status = status;
     if (currency) filter.currency = currency;
     if (city) filter.city = city;
     if (country) filter.country = country;
-    if (standard) filter.standard = standard;
 
-    /* ⏳ Date range filter */
+    /* ------------------ DATE RANGE ------------------ */
     if (startDate || endDate) {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
       if (endDate) filter.createdAt.$lte = new Date(endDate);
     }
 
-    /* 📄 Pagination */
+    /* ------------------ PAGINATION ------------------ */
     const skip = (page - 1) * limit;
 
     const invoices = await Invoice.find(filter)
       .populate("agentId")
       .populate("companyId")
       .populate("componyDetails")
+      .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+      .limit(Number(limit));
 
     const total = await Invoice.countDocuments(filter);
 
@@ -387,11 +434,11 @@ export const getProformaInvoicesFilter = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-
     res.status(500).json({
       message: "Error fetching invoice list",
       error: error.message,
     });
   }
 };
+
 
