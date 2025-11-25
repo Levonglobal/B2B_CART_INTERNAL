@@ -1,18 +1,33 @@
 import Company from "../../models/componyModel/ComponyModel.js";
 import Invoice from "../../models/InvoiceModel/InvoiceModel.js";
 import Agent from "../../models/AgentModel/AgentModel.js"
+import Standard from "../../models/StandardModel/StandardModel.js";
 
 // Get all companies
 export const getAllCompanies = async (req, res) => {
   try {
     const companies = await Company.find()
-      .populate("invoiceIds")   // field in Company schema
-      .populate("ProformainvoiceIds")
+      .populate({
+        path: "invoiceIds",
+        populate: [
+          { path: "agentId", select: "_id agentName email phone" },
+          { path: "standard", select: "_id standardName shortName" }
+        ]
+      })
+      .populate({
+        path: "ProformainvoiceIds",
+        populate: [
+          { path: "agentId", select: "_id agentName email phone" },
+          { path: "standard", select: "_id standardName shortName" }
+        ]
+      });
+
     res.status(200).json(companies);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 export const getAllCompaniesNameAndId = async (req, res) => {
   try {
@@ -95,14 +110,30 @@ export const changeStatus = async (req, res) => {
 export const filtercomponyByName = async (req, res) => {
   try {
     const { name } = req.query;
+
     const companies = await Company.find({
       companyName: { $regex: name, $options: "i" },
     })
-    .populate("invoiceIds")   // field in Company schema
-    .populate("ProformainvoiceIds")
+      .populate({
+        path: "invoiceIds",
+        populate: [
+          { path: "agentId", select: "_id agentName email phone" },
+          { path: "standard", select: "_id standardName shortName" }
+        ]
+      })
+      .populate({
+        path: "ProformainvoiceIds",
+        populate: [
+          { path: "agentId", select: "_id agentName email phone" },
+          { path: "standard", select: "_id standardName shortName" }
+        ]
+      });
+
     res.status(200).json(companies);
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
