@@ -5,7 +5,7 @@ import Invoice from "../../models/InvoiceModel/InvoiceModel.js";
  */
 export const getPendingPayments = async (req, res) => {
   try {
-    const pendingInvoices = await Invoice.find({ "terms.status": "Pending" });
+    const pendingInvoices = await Invoice.find({ "IsCompleted": "false" });
 
     res.status(200).json({
       success: true,
