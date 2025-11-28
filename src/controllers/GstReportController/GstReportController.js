@@ -6,18 +6,22 @@ export const getGstReport = async (req, res) => {
 
     const matchStage = {};
 
-    // ✅ Date range filter (optional)
     if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      // Set end date to 23:59:59.999
+      end.setHours(23, 59, 59, 999);
+
       matchStage.InvoiceDate = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $gte: start,
+        $lte: end
       };
     }
 
     const result = await Invoice.aggregate([
       { $match: matchStage },
 
-      // Only GST of INR invoices
       {
         $addFields: {
           gstAmountOnlyINR: {
@@ -30,7 +34,6 @@ export const getGstReport = async (req, res) => {
         }
       },
 
-      // Final group
       {
         $group: {
           _id: null,
@@ -57,3 +60,4 @@ export const getGstReport = async (req, res) => {
     });
   }
 };
+

@@ -1,24 +1,24 @@
 import Invoice from "../../models/InvoiceModel/InvoiceModel.js";
 
-
 export const getTDSReport = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
     const matchStage = {};
 
-    // ✅ Date filter (optional)
+    // Date Filter
     if (startDate && endDate) {
-      matchStage.InvoiceDate = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      };
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      matchStage.InvoiceDate = { $gte: start, $lte: end };
     }
 
     const result = await Invoice.aggregate([
       { $match: matchStage },
 
-      // Only TDS of INR invoices
+      // Add INR Only TDS
       {
         $addFields: {
           tdsAmountOnlyINR: {
@@ -31,7 +31,6 @@ export const getTDSReport = async (req, res) => {
         }
       },
 
-      // Final grouped results
       {
         $group: {
           _id: null,
@@ -58,4 +57,3 @@ export const getTDSReport = async (req, res) => {
     });
   }
 };
-

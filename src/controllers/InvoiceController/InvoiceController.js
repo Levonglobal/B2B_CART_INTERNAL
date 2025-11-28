@@ -522,3 +522,35 @@ export const getInvoiveByStandrdAndComponyAsATrue = async (req, res) => {
 };
 
 
+export const getInvoiveByStandrdAndComponyAsAFalse = async (req, res) => {
+  try {
+    const { standard, companyId } = req.params;
+
+    console.log("Standard:", standard, "Company ID:", companyId);
+
+    // ✅ First update ALL invoices matching standard + companyId
+    await Invoice.updateMany(
+      { standard: standard, companyId: companyId },
+      { $set: {IsCompleted: false } }
+    );
+
+    // ✅ Then fetch updated invoices
+    const invoices = await Invoice.find({
+      standard: standard,
+      companyId: companyId,
+    })
+      .populate("agentId")
+      .populate("componyDetails")
+      .populate("standard");
+
+    return res.status(200).json({
+      success: true,
+      message: "All invoices updated with IsCompleted: true",
+      invoices,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error });
+  }
+};
+
+
