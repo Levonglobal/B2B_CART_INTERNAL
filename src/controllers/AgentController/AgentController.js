@@ -4,7 +4,7 @@ import Certification from "../../models/CertificationModel/CertificationModel.js
 // ✅ Create Agent
 export const createAgent = async (req, res) => {
   try {
-    const { agentName, agentEmail, agentNumber } = req.body;
+    const { agentName, agentEmail, agentNumber,target } = req.body;
     const existingAgent = await Agent.findOne({ agentEmail });
     if (existingAgent) {
       return res
@@ -12,7 +12,7 @@ export const createAgent = async (req, res) => {
         .json({ message: "Agent with this email already exists", success: false });
     }
 
-    const agent = new Agent({ agentName, agentEmail, agentNumber });
+    const agent = new Agent({ agentName, agentEmail, agentNumber ,target});
     await agent.save();
     res.status(201).json({ message: "Agent created successfully", agent, success: true });
   } catch (error) {
@@ -63,24 +63,69 @@ export const getAgentById = async (req, res) => {
 export const updateAgent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { agentName, agentEmail, agentNumber } = req.body;
+    const { agentName, agentEmail, agentNumber, target } = req.body;
 
+    // 1️⃣ Fetch agent
+    const agent = await Agent.findById(id);
+    if (!agent) {
+      return res.status(404).json({
+        message: "Agent not found",
+        success: false
+      });
+    }
+
+    // Ensure both are numbers
+    const oldTarget = Number(agent.target) || 0;
+    const achieved = Number(agent.targetAchieved) || 0;
+
+    let finalTarget = oldTarget;
+
+    // 2️⃣ If admin updates target
+    if (target !== undefined) {
+      const newTarget = Number(target);
+
+      if (isNaN(newTarget)) {
+        return res.status(400).json({
+          success: false,
+          message: "Target must be a valid number"
+        });
+      }
+
+      // remaining amount from old target
+      const remainingOld = oldTarget - achieved;
+
+      // calculate updated target
+      finalTarget = newTarget + remainingOld;
+    }
+
+    // 3️⃣ Update agent
     const updatedAgent = await Agent.findByIdAndUpdate(
       id,
-      { agentName, agentEmail, agentNumber },
+      {
+        agentName,
+        agentEmail,
+        agentNumber,
+        target: finalTarget
+      },
       { new: true }
     );
 
-    if (!updatedAgent) {
-      return res.status(404).json({ message: "Agent not found", success: false });
-    }
+    return res.status(200).json({
+      success: true,
+      message: "Agent updated successfully",
+      updatedAgent
+    });
 
-    res.status(200).json({ message: "Agent updated successfully", updatedAgent, success: true });
   } catch (error) {
     console.error("Error in updateAgent:", error);
-    res.status(500).json({ message: "Server Error", success: false });
+    return res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
   }
 };
+
+
 
 // ✅ Delete Agent + Remove Agent ID from Certifications
 export const deleteAgent = async (req, res) => {

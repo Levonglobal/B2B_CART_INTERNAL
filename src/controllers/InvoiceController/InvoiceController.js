@@ -15,7 +15,7 @@ export const createInvoice = async (req, res) => {
       currency,
       agentId,
       companyName,
-      companyId,   // <-- coming from request
+      companyId,
       email,
       alternateEmails,
       phone,
@@ -41,8 +41,13 @@ export const createInvoice = async (req, res) => {
       PendingPaymentInINR
     } = req.body;
 
-    const parsedTerms =
-      typeof terms === "string" ? JSON.parse(terms) : terms;
+    // ---------- ensure `standard` is an array ----------
+    const standards = Array.isArray(standard)
+      ? standard
+      : (typeof standard === "string" && standard.length ? JSON.parse(standard) : []);
+
+    // ---------- PARSE TERMS ----------
+    const parsedTerms = typeof terms === "string" ? JSON.parse(terms) : (terms || []);
 
     const updatedTerms = parsedTerms.map((term) => {
       if (currency === "INR") {
@@ -67,6 +72,7 @@ export const createInvoice = async (req, res) => {
       }
     });
 
+    // ---------- ATTACHMENTS ----------
     const attachments =
       req.files?.attachments?.map((file) => ({
         fileName: file.originalname,
@@ -74,12 +80,12 @@ export const createInvoice = async (req, res) => {
         fileType: file.mimetype,
       })) || [];
 
-    // ✅ Invoice creation
+    // ---------- CREATE INVOICE ----------
     const newInvoice = new Invoice({
       invoiceNo,
       currency,
       agentId,
-      companyId:companyId, // <-- storing here
+      companyId,
       companyName,
       email,
       alternateEmails,
@@ -94,7 +100,7 @@ export const createInvoice = async (req, res) => {
       ClientName,
       SacCode,
       certificationType,
-      standard,
+      standard: standards,
       baseClosureAmount,
       moneyReceived,
       paymentInstallments,
@@ -107,9 +113,11 @@ export const createInvoice = async (req, res) => {
       attachments,
     });
 
-    const invoiceDat = await newInvoice.save();
+    let invoiceDat = await newInvoice.save();
 
-    // ✅ Agent invoice count update
+    // ======================================================
+    //  1️⃣ UPDATE AGENT INVOICE COUNTS
+    // ======================================================
     const agentData = await Agent.findById(agentId);
     if (agentData) {
       agentData.InvoiceCount = (agentData.InvoiceCount || 0) + 1;
@@ -117,44 +125,76 @@ export const createInvoice = async (req, res) => {
       await agentData.save();
     }
 
-    // ✅ Company logic
+    // ======================================================
+    //  2️⃣ UPDATE COMPANY (CREATE IF NEW)
+    // ======================================================
     if (companyId) {
-      // Existing company
       const companyData = await ComponyModel.findById(companyId);
       if (companyData) {
-        companyData.invoiceCount += 1;
+        companyData.invoiceCount = (companyData.invoiceCount || 0) + 1;
+        companyData.invoiceIds = companyData.invoiceIds || [];
         companyData.invoiceIds.push(invoiceDat._id);
         await companyData.save();
       }
+      // ensure invoice has the correct companyId (if caller provided)
+      invoiceDat.companyId = companyId;
     } else {
-      // Create new company
       const company = await ComponyModel.create({
         companyName,
         status: "Active",
         invoiceCount: 1,
-        invoiceIds: [invoiceDat._id], // ✅ array fix
+        invoiceIds: [invoiceDat._id],
       });
 
-      invoiceDat.companyId = company._id; // ✅ typo fix
-      await invoiceDat.save();
+      invoiceDat.companyId = company._id;
     }
 
+    // save invoice again in case companyId changed (and keep invoiceDat consistent)
+    invoiceDat = await Invoice.findByIdAndUpdate(invoiceDat._id, { companyId: invoiceDat.companyId }, { new: true });
 
+    // ======================================================
+    //  3️⃣ TARGET ACHIEVED LOGIC (FIXED)
+    //     — exclude CURRENT invoice when checking for "existing"
+    // ======================================================
 
+    // coerce amount to number safely
+    const amountToAdd = Number(baseClosureAmount) || 0;
+
+    // check for other invoices for the same agent + company + any of these standards
+    const existingOther = await Invoice.findOne({
+      _id: { $ne: invoiceDat._id },        // exclude the invoice we just saved
+      agentId: agentId,
+      companyId: invoiceDat.companyId,
+      standard: { $in: standards }
+    });
+
+    console.log("Existing Other Invoice Found:", existingOther);
+    // If there is NO other invoice that matches → this is the FIRST unique company+standard for this agent
+    if (!existingOther && amountToAdd > 0) {
+    const ans =   await Agent.findByIdAndUpdate(agentId, { $inc: { targetAchieved: amountToAdd } });
+
+    }
+
+    // ======================================================
+    //  RESPONSE
+    // ======================================================
     return res.status(201).json({
       success: true,
       message: "Invoice created successfully",
-      invoice: invoiceDat,  // ✅ return updated invoice
+      invoice: invoiceDat,
     });
+
   } catch (error) {
     console.error("Create Invoice Error:", error);
     return res.status(500).json({
       success: false,
       message: "Server Error",
-      error,
+      error: error.message || error,
     });
   }
 };
+
+
 
 
 export const getInvoiveByStanderdandcomponyName = async (req, res) => {
