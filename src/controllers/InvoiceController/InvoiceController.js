@@ -5,7 +5,7 @@ import ComponyModel from "../../models/componyModel/ComponyModel.js";
 import Standard from "../../models/StandardModel/StandardModel.js";
 import mongoose from "mongoose";
 /**
- * ✅ Create Invoice (with file upload)
+. * ✅ Create Invoice (with file upload)
  */
 
 export const createInvoice = async (req, res) => {
@@ -498,8 +498,8 @@ export const getInvoicesFilter = async (req, res) => {
       /* ------------------ DATE RANGE ------------------ */
       if (startDate || endDate) {
         filter.createdAt = {};
-        if (startDate) filter.createdAt.$gte = new Date(startDate);
-        if (endDate) filter.createdAt.$lte = new Date(endDate);
+        if (startDate) filter.InvoiceDate.$gte = new Date(startDate);
+        if (endDate) filter.InvoiceDate.$lte = new Date(endDate);
       }
   
       /* ------------------ PAGINATION ------------------ */
