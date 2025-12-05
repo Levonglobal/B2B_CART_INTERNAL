@@ -4,41 +4,40 @@ import mongoose from "mongoose";
 const termSchema = new mongoose.Schema({
   termName: { type: String, required: true },
   baseAmount: { type: Number, required: true },
- 
-  /** ✅ GST only for INR */
- 
- gstPercentage: {
-  type: Number,
-  required: function () {
-    return this.parent().currency === "INR";
+
+  /** GST only for INR */
+  gstPercentage: {
+    type: Number,
+    required: function () {
+      return this.parent().currency === "INR";
+    },
   },
-},
 
-gstAmount: {
-  type: Number,
-  required: function () {
-    return this.parent().currency === "INR";
+  gstAmount: {
+    type: Number,
+    required: function () {
+      return this.parent().currency === "INR";
+    },
   },
-},
 
-TDSAmmount: {
-  type: Number,
-  required: function () {
-    return this.parent().currency === "INR";
+  TDSAmmount: {
+    type: Number,
+    required: function () {
+      return this.parent().currency === "INR";
+    },
   },
-},
 
-
-  /** ✅ termTotal ALWAYS stores in selected currency (INR / USD / EUR) */
+  /** termTotal ALWAYS stores in selected currency */
   termTotal: { type: Number, required: true },
 
-  /** ✅ ONLY when currency is NON-INR (USD/EUR/Other) */
+  /** ONLY when currency is NON-INR */
   exchangeRate: {
     type: Number,
     required: function () {
       return this.parent().currency !== "INR";
     },
   },
+
   totalInINR: {
     type: Number,
     required: function () {
@@ -52,8 +51,6 @@ TDSAmmount: {
     default: "Pending",
   },
 });
-
-
 
 // ======================= INVOICE SCHEMA =======================
 const invoiceSchema = new mongoose.Schema(
@@ -69,7 +66,7 @@ const invoiceSchema = new mongoose.Schema(
     agentId: { type: mongoose.Schema.Types.ObjectId, ref: "Agent" },
 
     companyName: { type: String, required: true },
-    companyId:{type:mongoose.Schema.Types.ObjectId,ref:"Company"},
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company" },
     email: { type: String, required: true },
     alternateEmails: [{ type: String }],
     phone: { type: String },
@@ -77,18 +74,17 @@ const invoiceSchema = new mongoose.Schema(
     city: { type: String },
     address: { type: String },
     website: { type: String },
-    componyDetails:{type:mongoose.Schema.Types.ObjectId,ref:"CompanyDetails"},
-     InvoiceDate: { type: Date, default: Date.now },
+    componyDetails: { type: mongoose.Schema.Types.ObjectId, ref: "CompanyDetails" },
 
-    /** ✅ GST NUMBER required only for INR */
+    InvoiceDate: { type: Date, default: Date.now },
+
+    /** GST NUMBER required only for INR */
     gstNumber: {
       type: String,
       required: function () {
         return this.currency === "INR";
       },
     },
-
-
 
     standard: { type: [String], ref: "Standard" },
     baseClosureAmount: { type: Number, required: true },
@@ -98,22 +94,40 @@ const invoiceSchema = new mongoose.Schema(
     SacCode: { type: String },
     certificationType: { type: String },
 
-    /** ✅ Multi installment terms */
+    /** EXTRA FIELDS REQUIRED FOR NON-INR CURRENCY */
+    baseClosureAmountINR: {
+      type: Number,
+      required: function () {
+        return this.currency !== "INR";
+      },
+    },
+
+    exchangeRateForBaseClosure: {
+      type: Number,
+      required: function () {
+        return this.currency !== "INR";
+      },
+    },
+
+    /** Multi installment terms */
     terms: [termSchema],
 
     TotalBaseAmount: { type: Number, required: true },
-    TotalGSTAmount: { 
-      type:Number,
-      required: function () {
-        return this.currency === "INR";
-      },
-     },
-    TotalTDSAmount: { 
+
+    TotalGSTAmount: {
       type: Number,
       required: function () {
         return this.currency === "INR";
       },
-     },
+    },
+
+    TotalTDSAmount: {
+      type: Number,
+      required: function () {
+        return this.currency === "INR";
+      },
+    },
+
     GrandTotalBaseAmmount: { type: Number, required: true },
     PendingPaymentInINR: { type: Number, required: true },
     IsCompleted: { type: Boolean, default: false },

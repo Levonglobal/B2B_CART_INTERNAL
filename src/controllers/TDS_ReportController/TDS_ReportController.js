@@ -6,7 +6,6 @@ export const getTDSReport = async (req, res) => {
 
     const matchStage = {};
 
-    // Date Filter
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -18,14 +17,13 @@ export const getTDSReport = async (req, res) => {
     const result = await Invoice.aggregate([
       { $match: matchStage },
 
-      // Add INR Only TDS
       {
         $addFields: {
-          tdsAmountOnlyINR: {
+          tdsAmountCorrect: {
             $cond: [
               { $eq: ["$currency", "INR"] },
-              "$TotalTDSAmount",
-              0
+              "$TotalTDSAmount",        // If INR → use normal TDS
+              "$TotalTDSAmountINR"      // If USD → use INR converted TDS
             ]
           }
         }
@@ -35,7 +33,7 @@ export const getTDSReport = async (req, res) => {
         $group: {
           _id: null,
           totalInvoiceCount: { $sum: 1 },
-          totalTDSAmount: { $sum: "$tdsAmountOnlyINR" }
+          totalTDSAmount: { $sum: "$tdsAmountCorrect" }
         }
       }
     ]);

@@ -31,6 +31,8 @@ export const createInvoice = async (req, res) => {
       certificationType,
       standard,
       baseClosureAmount,
+      baseClosureAmountINR,          // ✅ NEW FIELD
+      exchangeRateForBaseClosure,    // ✅ NEW FIELD
       moneyReceived,
       paymentInstallments,
       terms,
@@ -47,7 +49,8 @@ export const createInvoice = async (req, res) => {
       : (typeof standard === "string" && standard.length ? JSON.parse(standard) : []);
 
     // ---------- PARSE TERMS ----------
-    const parsedTerms = typeof terms === "string" ? JSON.parse(terms) : (terms || []);
+    const parsedTerms =
+      typeof terms === "string" ? JSON.parse(terms) : (terms || []);
 
     const updatedTerms = parsedTerms.map((term) => {
       if (currency === "INR") {
@@ -102,6 +105,11 @@ export const createInvoice = async (req, res) => {
       certificationType,
       standard: standards,
       baseClosureAmount,
+
+      /** ✅ NEW FIELDS ADDED HERE */
+      baseClosureAmountINR: currency !== "INR" ? baseClosureAmountINR : undefined,
+      exchangeRateForBaseClosure: currency !== "INR" ? exchangeRateForBaseClosure : undefined,
+
       moneyReceived,
       paymentInstallments,
       terms: updatedTerms,
@@ -126,7 +134,7 @@ export const createInvoice = async (req, res) => {
     }
 
     // ======================================================
-    //  2️⃣ UPDATE COMPANY (CREATE IF NEW)
+    //  2️⃣ UPDATE COMPANY
     // ======================================================
     if (companyId) {
       const companyData = await ComponyModel.findById(companyId);
@@ -136,48 +144,43 @@ export const createInvoice = async (req, res) => {
         companyData.invoiceIds.push(invoiceDat._id);
         await companyData.save();
       }
-      // ensure invoice has the correct companyId (if caller provided)
       invoiceDat.companyId = companyId;
     } else {
-      const company = await ComponyModel.create({
+      const newCompany = await ComponyModel.create({
         companyName,
         status: "Active",
         invoiceCount: 1,
         invoiceIds: [invoiceDat._id],
       });
 
-      invoiceDat.companyId = company._id;
+      invoiceDat.companyId = newCompany._id;
     }
 
-    // save invoice again in case companyId changed (and keep invoiceDat consistent)
-    invoiceDat = await Invoice.findByIdAndUpdate(invoiceDat._id, { companyId: invoiceDat.companyId }, { new: true });
+    // save updated invoice
+    invoiceDat = await Invoice.findByIdAndUpdate(
+      invoiceDat._id,
+      { companyId: invoiceDat.companyId },
+      { new: true }
+    );
 
     // ======================================================
-    //  3️⃣ TARGET ACHIEVED LOGIC (FIXED)
-    //     — exclude CURRENT invoice when checking for "existing"
+    //  3️⃣ TARGET ACHIEVED LOGIC
     // ======================================================
-
-    // coerce amount to number safely
     const amountToAdd = Number(baseClosureAmount) || 0;
 
-    // check for other invoices for the same agent + company + any of these standards
     const existingOther = await Invoice.findOne({
-      _id: { $ne: invoiceDat._id },        // exclude the invoice we just saved
+      _id: { $ne: invoiceDat._id },
       agentId: agentId,
       companyId: invoiceDat.companyId,
-      standard: { $in: standards }
+      standard: { $in: standards },
     });
 
-    console.log("Existing Other Invoice Found:", existingOther);
-    // If there is NO other invoice that matches → this is the FIRST unique company+standard for this agent
     if (!existingOther && amountToAdd > 0) {
-    const ans =   await Agent.findByIdAndUpdate(agentId, { $inc: { targetAchieved: amountToAdd } });
-
+      await Agent.findByIdAndUpdate(agentId, {
+        $inc: { targetAchieved: amountToAdd },
+      });
     }
 
-    // ======================================================
-    //  RESPONSE
-    // ======================================================
     return res.status(201).json({
       success: true,
       message: "Invoice created successfully",
@@ -193,6 +196,7 @@ export const createInvoice = async (req, res) => {
     });
   }
 };
+
 
 
 
