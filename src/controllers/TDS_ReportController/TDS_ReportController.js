@@ -1,3 +1,4 @@
+import { buildTaxAggregationStages } from "../../utils/TaxAggregationStages.js";
 import Invoice from "../../models/InvoiceModel/InvoiceModel.js";
 
 export const getTDSReport = async (req, res) => {
@@ -16,26 +17,7 @@ export const getTDSReport = async (req, res) => {
 
     const result = await Invoice.aggregate([
       { $match: matchStage },
-
-      {
-        $addFields: {
-          tdsAmountCorrect: {
-            $cond: [
-              { $eq: ["$currency", "INR"] },
-              "$TotalTDSAmount",        // If INR → use normal TDS
-              "$TotalTDSAmountINR"      // If USD → use INR converted TDS
-            ]
-          }
-        }
-      },
-
-      {
-        $group: {
-          _id: null,
-          totalInvoiceCount: { $sum: 1 },
-          totalTDSAmount: { $sum: "$tdsAmountCorrect" }
-        }
-      }
+      ...buildTaxAggregationStages("TDS")
     ]);
 
     if (result.length === 0) {
@@ -45,13 +27,13 @@ export const getTDSReport = async (req, res) => {
       });
     }
 
-    return res.status(200).json(result[0]);
+    return res.status(200).json({
+      totalInvoiceCount: result[0].totalInvoiceCount,
+      totalTDSAmount: result[0].totalAmount
+    });
 
   } catch (error) {
     console.error("TDS Report Error:", error);
-    return res.status(500).json({
-      message: "Server error",
-      error: error.message
-    });
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };

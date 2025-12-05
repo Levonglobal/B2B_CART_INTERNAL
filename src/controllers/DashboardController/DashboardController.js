@@ -5,61 +5,61 @@ import proformaInvoice from "../../models/ProformainvoiceModel/ProformainvoiceMo
 import Agent from "../../models/AgentModel/AgentModel.js";
 
 
+import { buildTaxAggregationStages } from "../../utils/TaxAggregationStages.js";
+
 export const getDashboardData = async (req, res) => {
   try {
     // ******** TOTAL COUNTS ******** //
     const totalProforma = await proformaInvoice.countDocuments();
     const totalCompanies = await Company.countDocuments();
-
-    // NORMAL invoice count (same as GST/TDS report)
     const totalInvoices = await Invoice.countDocuments();
 
-    // ******** GST / TDS / Pending (matching report logic) ******** //
-    const stats = await Invoice.aggregate([
+    // ******** GST TOTAL ******** //
+    const gstStats = await Invoice.aggregate([
+      ...buildTaxAggregationStages("GST")
+    ]);
+
+    const totalGST = gstStats[0]?.totalAmount || 0;
+
+    // ******** TDS TOTAL ******** //
+    const tdsStats = await Invoice.aggregate([
+      ...buildTaxAggregationStages("TDS")
+    ]);
+
+    const totalTDS = tdsStats[0]?.totalAmount || 0;
+
+    // ******** PENDING PAYMENT ******** //
+    const pendingStats = await Invoice.aggregate([
       {
         $group: {
           _id: null,
-
-          // GST ONLY FOR INR
-          totalGST: {
-            $sum: {
-              $cond: [
-                { $eq: ["$currency", "INR"] },
-                { $ifNull: ["$TotalGSTAmount", 0] },
-                0
-              ]
-            }
-          },
-
-          // TDS ONLY FOR INR
-          totalTDS: {
-            $sum: {
-              $cond: [
-                { $eq: ["$currency", "INR"] },
-                { $ifNull: ["$TotalTDSAmount", 0] },
-                0
-              ]
-            }
-          },
-
-          // PENDING (no change)
           totalPendingPayment: { $sum: "$PendingPaymentInINR" }
         }
       }
     ]);
 
-    const s = stats[0] || {
-      totalGST: 0,
-      totalTDS: 0,
-      totalPendingPayment: 0
-    };
+    const totalPendingPayment =
+      pendingStats[0]?.totalPendingPayment || 0;
 
     // ******** RECENT DATA ******** //
-    const recentProforma = await proformaInvoice.find().sort({ proformaInvoiceDate: -1 }).limit(3);
-    const recentCompanies = await Company.find().sort({ createdAt: -1 }).limit(3);
-    const recentInvoices = await Invoice.find().sort({ InvoiceDate: -1 }).limit(3);
+    const recentProforma = await proformaInvoice
+      .find()
+      .sort({ proformaInvoiceDate: -1 })
+      .limit(3);
 
-    const recentPendingInvoices = await Invoice.find({ PendingPaymentInINR: { $gt: 0 } })
+    const recentCompanies = await Company
+      .find()
+      .sort({ createdAt: -1 })
+      .limit(3);
+
+    const recentInvoices = await Invoice
+      .find()
+      .sort({ InvoiceDate: -1 })
+      .limit(3);
+
+    const recentPendingInvoices = await Invoice.find({
+      PendingPaymentInINR: { $gt: 0 }
+    })
       .sort({ InvoiceDate: -1 })
       .limit(3);
 
@@ -75,10 +75,13 @@ export const getDashboardData = async (req, res) => {
       totals: {
         totalProforma,
         totalCompanies,
-        totalInvoices,   // same logic as reports
-        totalGST: s.totalGST,
-        totalTDS: s.totalTDS,
-        totalPendingPayment: s.totalPendingPayment
+        totalInvoices,
+
+        // GST / TDS from central logic
+        totalGST,
+        totalTDS,
+
+        totalPendingPayment
       },
       recent: {
         proforma: recentProforma,
@@ -94,6 +97,7 @@ export const getDashboardData = async (req, res) => {
     return res.status(500).json({ success: false, error: err.message });
   }
 };
+
 
 
 

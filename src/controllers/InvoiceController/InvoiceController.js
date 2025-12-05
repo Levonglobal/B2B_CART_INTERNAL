@@ -31,8 +31,8 @@ export const createInvoice = async (req, res) => {
       certificationType,
       standard,
       baseClosureAmount,
-      baseClosureAmountINR,          // ✅ NEW FIELD
-      exchangeRateForBaseClosure,    // ✅ NEW FIELD
+      baseClosureAmountINR,
+      exchangeRateForBaseClosure,
       moneyReceived,
       paymentInstallments,
       terms,
@@ -43,16 +43,17 @@ export const createInvoice = async (req, res) => {
       PendingPaymentInINR
     } = req.body;
 
-    // ---------- ensure `standard` is an array ----------
+    // ---------- standard (array) ----------
     const standards = Array.isArray(standard)
       ? standard
-      : (typeof standard === "string" && standard.length ? JSON.parse(standard) : []);
+      : typeof standard === "string" && standard.length
+      ? JSON.parse(standard)
+      : [];
 
-    // ---------- PARSE TERMS ----------
-    const parsedTerms =
-      typeof terms === "string" ? JSON.parse(terms) : (terms || []);
+    // ---------- terms parse ----------
+    const parsedTerms = typeof terms === "string" ? JSON.parse(terms) : (terms || []);
 
-    const updatedTerms = parsedTerms.map((term) => {
+    const updatedTerms = parsedTerms.map(term => {
       if (currency === "INR") {
         return {
           termName: term.termName,
@@ -63,19 +64,18 @@ export const createInvoice = async (req, res) => {
           termTotal: term.termTotal,
           status: term.status || "Pending",
         };
-      } else {
-        return {
-          termName: term.termName,
-          baseAmount: term.baseAmount,
-          termTotal: term.termTotal,
-          exchangeRate: term.exchangeRate,
-          totalInINR: term.totalInINR,
-          status: term.status || "Pending",
-        };
       }
+      return {
+        termName: term.termName,
+        baseAmount: term.baseAmount,
+        termTotal: term.termTotal,
+        exchangeRate: term.exchangeRate,
+        totalInINR: term.totalInINR,
+        status: term.status || "Pending",
+      };
     });
 
-    // ---------- ATTACHMENTS ----------
+    // ---------- attachments ----------
     const attachments =
       req.files?.attachments?.map((file) => ({
         fileName: file.originalname,
@@ -84,7 +84,7 @@ export const createInvoice = async (req, res) => {
       })) || [];
 
     // ---------- CREATE INVOICE ----------
-    const newInvoice = new Invoice({
+    let invoiceDat = await Invoice.create({
       invoiceNo,
       currency,
       agentId,
@@ -106,7 +106,7 @@ export const createInvoice = async (req, res) => {
       standard: standards,
       baseClosureAmount,
 
-      /** ✅ NEW FIELDS ADDED HERE */
+      // NEW FIELDS stay safe
       baseClosureAmountINR: currency !== "INR" ? baseClosureAmountINR : undefined,
       exchangeRateForBaseClosure: currency !== "INR" ? exchangeRateForBaseClosure : undefined,
 
@@ -121,10 +121,8 @@ export const createInvoice = async (req, res) => {
       attachments,
     });
 
-    let invoiceDat = await newInvoice.save();
-
     // ======================================================
-    //  1️⃣ UPDATE AGENT INVOICE COUNTS
+    //  1️⃣ UPDATE AGENT
     // ======================================================
     const agentData = await Agent.findById(agentId);
     if (agentData) {
@@ -137,12 +135,11 @@ export const createInvoice = async (req, res) => {
     //  2️⃣ UPDATE COMPANY
     // ======================================================
     if (companyId) {
-      const companyData = await ComponyModel.findById(companyId);
-      if (companyData) {
-        companyData.invoiceCount = (companyData.invoiceCount || 0) + 1;
-        companyData.invoiceIds = companyData.invoiceIds || [];
-        companyData.invoiceIds.push(invoiceDat._id);
-        await companyData.save();
+      const comp = await ComponyModel.findById(companyId);
+      if (comp) {
+        comp.invoiceCount = (comp.invoiceCount || 0) + 1;
+        comp.invoiceIds.push(invoiceDat._id);
+        await comp.save();
       }
       invoiceDat.companyId = companyId;
     } else {
@@ -152,16 +149,11 @@ export const createInvoice = async (req, res) => {
         invoiceCount: 1,
         invoiceIds: [invoiceDat._id],
       });
-
       invoiceDat.companyId = newCompany._id;
     }
 
-    // save updated invoice
-    invoiceDat = await Invoice.findByIdAndUpdate(
-      invoiceDat._id,
-      { companyId: invoiceDat.companyId },
-      { new: true }
-    );
+    /** 🔥 FIXED: DO NOT OVERWRITE DOCUMENT */
+    await invoiceDat.save();
 
     // ======================================================
     //  3️⃣ TARGET ACHIEVED LOGIC
@@ -170,7 +162,7 @@ export const createInvoice = async (req, res) => {
 
     const existingOther = await Invoice.findOne({
       _id: { $ne: invoiceDat._id },
-      agentId: agentId,
+      agentId,
       companyId: invoiceDat.companyId,
       standard: { $in: standards },
     });
@@ -192,10 +184,11 @@ export const createInvoice = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server Error",
-      error: error.message || error,
+      error: error.message,
     });
   }
 };
+
 
 
 
