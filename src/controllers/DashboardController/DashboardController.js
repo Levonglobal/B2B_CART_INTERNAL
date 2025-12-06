@@ -30,13 +30,33 @@ export const getDashboardData = async (req, res) => {
 
     // ******** PENDING PAYMENT ******** //
     const pendingStats = await Invoice.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalPendingPayment: { $sum: "$PendingPaymentInINR" }
-        }
+  {
+    $sort: {
+      companyId: 1,
+      standardId: 1,
+      InvoiceDate: -1  // latest first
+    }
+  },
+  {
+    $group: {
+      _id: {
+        companyId: "$companyId",
+        standardId: "$standardId"
+      },
+      latestPending: { $first: "$PendingPaymentInINR" } // pick only latest invoice
+    }
+  },
+  {
+    $group: {
+      _id: null,
+      totalPendingPayment: {
+        $sum: { $toDouble: "$latestPending" }
       }
-    ]);
+    }
+  }
+]);
+
+
 
     const totalPendingPayment =
       pendingStats[0]?.totalPendingPayment || 0;
