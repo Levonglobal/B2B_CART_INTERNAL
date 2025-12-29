@@ -1,9 +1,9 @@
-import * as memberService from "../../service/MemberService.js";
+import * as managerService from "../../service/ManagerService.js";
 
 /**
- * Create a new member
+ * Create a new manager
  */
-export const createMember = async (req, res) => {
+export const createManager = async (req, res) => {
   try {
     const { name, email, mobile } = req.body;
 
@@ -15,15 +15,15 @@ export const createMember = async (req, res) => {
       });
     }
 
-    const result = await memberService.createMember({ name, email, mobile });
+    const result = await managerService.createManager({ name, email, mobile });
     res.status(201).json({
       success: true,
-      message: "Member created successfully",
-      member: result.member,
+      message: "Manager created successfully",
+      manager: result.manager,
     });
   } catch (error) {
-    console.error("Error in createMember:", error);
-    if (error.message === "Member with this email already exists") {
+    console.error("Error in createManager:", error);
+    if (error.message === "Manager with this email already exists") {
       return res.status(400).json({
         success: false,
         message: error.message,
@@ -38,15 +38,15 @@ export const createMember = async (req, res) => {
 };
 
 /**
- * Get all members
+ * Get all managers
  */
-export const getAllMembers = async (req, res) => {
+export const getAllManagers = async (req, res) => {
   try {
     const { page, limit, noPagination } = req.query;
-    const result = await memberService.getAllMembers({ page, limit, noPagination });
+    const result = await managerService.getAllManagers({ page, limit, noPagination });
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error in getAllMembers:", error);
+    console.error("Error in getAllManagers:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -56,16 +56,16 @@ export const getAllMembers = async (req, res) => {
 };
 
 /**
- * Get member by ID
+ * Get manager by ID
  */
-export const getMemberById = async (req, res) => {
+export const getManagerById = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await memberService.getMemberById(id);
+    const result = await managerService.getManagerById(id);
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error in getMemberById:", error);
-    if (error.message === "Member not found") {
+    console.error("Error in getManagerById:", error);
+    if (error.message === "Manager not found") {
       return res.status(404).json({
         success: false,
         message: error.message,
@@ -80,9 +80,9 @@ export const getMemberById = async (req, res) => {
 };
 
 /**
- * Update member by ID
+ * Update manager by ID
  */
-export const updateMember = async (req, res) => {
+export const updateManager = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, email, mobile } = req.body;
@@ -99,21 +99,21 @@ export const updateMember = async (req, res) => {
       });
     }
 
-    const result = await memberService.updateMember(id, updateData);
+    const result = await managerService.updateManager(id, updateData);
     res.status(200).json({
       success: true,
-      message: "Member updated successfully",
-      member: result.member,
+      message: "Manager updated successfully",
+      manager: result.manager,
     });
   } catch (error) {
-    console.error("Error in updateMember:", error);
-    if (error.message === "Member not found") {
+    console.error("Error in updateManager:", error);
+    if (error.message === "Manager not found") {
       return res.status(404).json({
         success: false,
         message: error.message,
       });
     }
-    if (error.message === "Member with this email already exists") {
+    if (error.message === "Manager with this email already exists") {
       return res.status(400).json({
         success: false,
         message: error.message,
@@ -128,19 +128,19 @@ export const updateMember = async (req, res) => {
 };
 
 /**
- * Delete member by ID
+ * Delete manager by ID
  */
-export const deleteMember = async (req, res) => {
+export const deleteManager = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await memberService.deleteMember(id);
+    const result = await managerService.deleteManager(id);
     res.status(200).json({
       success: true,
       message: result.message,
     });
   } catch (error) {
-    console.error("Error in deleteMember:", error);
-    if (error.message === "Member not found") {
+    console.error("Error in deleteManager:", error);
+    if (error.message === "Manager not found") {
       return res.status(404).json({
         success: false,
         message: error.message,
@@ -153,4 +153,5 @@ export const deleteMember = async (req, res) => {
     });
   }
 };
+
 
