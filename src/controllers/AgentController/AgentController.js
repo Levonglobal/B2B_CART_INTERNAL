@@ -33,7 +33,7 @@ export const getAllAgents = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const agents = await Agent.find().skip(skip).limit(limit);
+    const agents = await Agent.find().skip(skip).limit(limit).populate('member');
     const totalAgents = await Agent.countDocuments();
 
     res.status(200).json({
