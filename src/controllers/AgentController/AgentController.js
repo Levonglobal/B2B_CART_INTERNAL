@@ -26,14 +26,14 @@ export const getAllAgents = async (req, res) => {
   try {
     const { noPagination } = req.query;
     if (noPagination === 'true') {
-      const agents = await Agent.find();
+      const agents = await Agent.find().populate('manager', '_id name');
       return res.status(200).json({ success: true, agents });
     }
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const agents = await Agent.find().skip(skip).limit(limit).populate('member');
+    const agents = await Agent.find().skip(skip).limit(limit).populate('manager', '_id name');
     const totalAgents = await Agent.countDocuments();
 
     res.status(200).json({
