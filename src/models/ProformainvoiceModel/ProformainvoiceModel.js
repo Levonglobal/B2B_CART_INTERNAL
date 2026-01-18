@@ -45,14 +45,14 @@ const termSchema = new mongoose.Schema({
     },
   },
 
-   BankingCharges: {
+  BankingCharges: {
     type: Number,
     default: 0
   },
 
- 
 
-  
+
+
 });
 
 /* ======================= PROFORMA INVOICE SCHEMA ======================= */
@@ -63,19 +63,19 @@ const proformaInvoiceSchema = new mongoose.Schema(
     currency: {
       type: String,
       required: true,
-      enum: ["INR", "USD", "EUR", "Other"],
+      enum: ["INR", "USD", "EUR", "GBP", "SAD", "AE", "AUD", "KW", "Other"],
     },
 
     agentId: { type: mongoose.Schema.Types.ObjectId, ref: "Agent" },
 
     companyName: { type: String, required: true },
-    companyId:{type:mongoose.Schema.Types.ObjectId,ref:"Company"},
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: "Company" },
     /** ✅ Modified - Now Close / Lost also allowed */
-  status: {
-    type: String,
-    enum: [ "Close", "Lost","Active"], // ✅ Updated as requested
-    default: "Active",
-  },
+    status: {
+      type: String,
+      enum: ["Close", "Lost", "Active"], // ✅ Updated as requested
+      default: "Active",
+    },
     email: { type: String, required: true },
     alternateEmails: [{ type: String }],
     phone: { type: String },
@@ -111,7 +111,7 @@ const proformaInvoiceSchema = new mongoose.Schema(
     /** ✅ Updated terms */
     terms: [termSchema],
 
-    
+
   },
   { timestamps: true }
 );

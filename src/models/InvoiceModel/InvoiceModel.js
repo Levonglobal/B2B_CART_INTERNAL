@@ -60,7 +60,7 @@ const invoiceSchema = new mongoose.Schema(
     currency: {
       type: String,
       required: true,
-      enum: ["INR", "USD", "EUR", "Other"],
+      enum: ["INR", "USD", "EUR", "GBP", "SAD", "AE", "AUD", "KW", "Other"],
     },
 
     agentId: { type: mongoose.Schema.Types.ObjectId, ref: "Agent" },
